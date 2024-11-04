@@ -1,0 +1,118 @@
+{
+  "name": "neurodot-nirs2ndot",
+  "label": "neurodot-nirs2ndot",
+  "description": "Runs nirs2ndot on subject mat for bids data",
+  "version": "1.0",
+  "schema-version": "1.0",
+  "image": "registry.nrg.wustl.edu/docker/nrg-repo/yash/nirs2ndot_bids:latest",
+  "type": "docker",
+  "command-line": "run.sh /Project/mesh/#mesh# #SCAN_ID# #SESSION_ID# #SESSION_LABEL# #PROJECT#",
+  "override-entrypoint": true,
+  "mounts": [
+    {
+      "name": "scan-in",
+      "writable": true,
+      "path": "/input/"
+    },
+    {
+      "name": "mat-out",
+      "writable": true,
+      "path": "/output"
+    },
+    {
+      "name": "tmp",
+      "writable": true,
+      "path": "/tmp"
+    }
+  ],
+  "environment-variables": {
+    "MCR_CACHE_ROOT": "/tmp"
+  },
+  "ports": {},
+  "inputs": [
+    {
+      "name": "SUBJECT_MAT",
+      "type": "string",
+      "required": true,
+      "replacement-key": "#SUBJECT_MAT#",
+      "select-values": []
+    }
+  ],
+  "outputs": [
+    {
+      "name": "mat-file",
+      "description": "The converted mat file",
+      "required": true,
+      "mount": "mat-out"
+    }
+  ],
+  "xnat": [
+    {
+      "name": "Run nirs2ndot with subject data mounted",
+      "label": "nirs2ndot",
+      "description": "Convert nirs data to ndot mat type with resource folder mounted",
+      "contexts": [
+        "xnat:imageScanData"
+      ],
+      "external-inputs": [
+        {
+          "name": "scan",
+          "description": "Input scan",
+          "type": "Scan",
+          "matcher": "",
+          "required": true,
+          "load-children": true
+        }
+      ],
+      "derived-inputs": [
+        {
+          "name": "scanResource",
+          "type": "Resource",
+          "matcher": "@.label =~ /.*FNIRS.*/i",
+          "required": true,
+          "provides-files-for-command-mount": "scan-in",
+          "user-settable": true,
+          "load-children": true,
+          "derived-from-wrapper-input": "scan",
+          "multiple": false
+        },
+        {
+          "name": "subject-mat-file",
+          "type": "File",
+          "matcher": "@.label =~ /.*.nirs.*/i",
+          "required": true,
+          "load-children": true,
+          "derived-from-wrapper-input": "scanResource",
+          "multiple": false
+        },
+        {
+          "name": "subject-mat-name",
+          "type": "string",
+          "required": true,
+          "provides-value-for-command-input": "SUBJECT_MAT",
+          "user-settable": true,
+          "load-children": true,
+          "derived-from-wrapper-input": "subject-mat-file",
+          "derived-from-xnat-object-property": "name",
+          "multiple": false
+        }
+      ],
+      "output-handlers": [
+        {
+          "name": "scanResource",
+          "accepts-command-output": "mat-file",
+          "as-a-child-of": "scan",
+          "type": "Resource",
+          "label": "FNIRS",
+          "tags": []
+        }
+      ]
+    }
+  ],
+  "reserve-memory": 6192,
+  "limit-memory": 6192,
+  "container-labels": {},
+  "generic-resources": {},
+  "ulimits": {},
+  "secrets": []
+}
